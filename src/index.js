@@ -1,15 +1,27 @@
 const express = require("express");
-const app = express();
 const axios = require("axios");
 const path = require("path");
+const mongoose = require("mongoose");
 
-//settings
+//Initializations
+const app = express();
+require("./database");
+
+//Settings
 app.set("port", 8080);
 app.engine("html", require("ejs").renderFile);
 app.set("view engine", "ejs");
 
-//middlewares
+//Middlewares
 app.use(express.json());
+const userSchema = mongoose.Schema({
+  nombre: String,
+  pais: String,
+  ciudad: String,
+  dni: Number,
+  email: String,
+  session: String,
+});
 app.post("/webhook", (req, res) => {
   const query = req.body.queryResult;
   const session = req.body.session.split("/").pop();
@@ -37,9 +49,42 @@ app.post("/webhook", (req, res) => {
       break;
     case "action_dni":
       const dni = query.parameters.dni;
+      const dniLength = dni.toString().length;
+      if (dniLength > 6 && dniLength < 9) {
+        res.json({
+          fulfillmentText: `Por último, ingrese su dirección de email:`,
+        });
+      } else {
+        res.json({
+          fulfillmentText:
+            "Por favor, ingrese un dni válido(entre 7 y 9 dígitos)",
+        });
+      }
+
+      console.log(dniLength);
       break;
     case "action_email":
       const email = query.parameters.email;
+      const emailRegex = /^(([^<>()[\]\.,;:\s@\"]+(\.[^<>()[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i;
+      const esValido = emailRegex.test(email);
+      if (esValido) {
+        res.json({
+          fulfillmentText: `Muy bien, ha completado el registro con éxito. \n
+          Nombre: 
+          País: 
+          Ciudad: 
+          DNI: 
+          Email: 
+          ¿Está de acuerdo con los datos ingresados? \n
+          Para continuar escriba 'si'. \n
+          Para modificarlos o desistir escriba 'no'.\n`,
+        });
+      } else {
+        res.json({
+          fulfillmentText: "Por favor ingrese un email válido",
+        });
+      }
+
       break;
 
     default:
@@ -47,11 +92,11 @@ app.post("/webhook", (req, res) => {
   }
 });
 
-//routes
+//Routes
 
-//static files
+//Static files
 
-//listening the server
+//Listening the server
 app.listen(app.get("port"), () => {
   console.log("server on port", app.get("port"));
 });
